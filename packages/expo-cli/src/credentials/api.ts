@@ -1,7 +1,9 @@
 import { ApiV2, User } from '@expo/xdl';
 import findIndex from 'lodash/findIndex';
+import find from 'lodash/find';
 import omit from 'lodash/omit';
 import assign from 'lodash/assign';
+import get from 'lodash/get';
 
 import log from '../log';
 import * as appleApi from '../appleApi';
@@ -185,7 +187,7 @@ export class IosApi {
     bundleIdentifier: string,
     provisioningProfile: appleApi.ProvisioningProfile,
     appleTeam: appleApi.Team
-  ) {
+  ): Promise<appleApi.ProvisioningProfile> {
     await this.api.postAsync(`credentials/ios/provisioningProfile/update`, {
       experienceName,
       bundleIdentifier,
@@ -196,27 +198,34 @@ export class IosApi {
       app => app.experienceName === experienceName && app.bundleIdentifier === bundleIdentifier
     );
     assign(this.credentials.appCredentials[credIndex].credentials, provisioningProfile);
+    return provisioningProfile;
   }
 
-  async getProvisioningProfile(
+  async getAppCredentials(
     experienceName: string,
     bundleIdentifier: string
-  ): Promise<appleApi.ProvisioningProfile | null> {
+  ): Promise<IosAppCredentials> {
     if (this.shouldRefetch) {
       await this._fetchAllCredentials();
     }
     this._ensureAppCredentials(experienceName, bundleIdentifier);
-    const credIndex = findIndex(
+    return find(
       this.credentials.appCredentials,
       app => app.experienceName === experienceName && app.bundleIdentifier === bundleIdentifier
-    );
-    const { provisioningProfile, provisioningProfileId } = this.credentials.appCredentials[
-      credIndex
-    ].credentials;
-    if (provisioningProfile && provisioningProfileId) {
-      return { provisioningProfile, provisioningProfileId };
+    )!;
+  }
+
+  async getProvisioningProfile(
+    experienceName: string,
+    bundleIdentiifer: string
+  ): Promise<appleApi.ProvisioningProfile | null> {
+    const appCredentials = await this.getAppCredentials(experienceName, bundleIdentiifer);
+    const provisioningProfileId = get(appCredentials, 'credentials.provisioningProfileId');
+    const provisioningProfile = get(appCredentials, 'credentials.provisioningProfile');
+    if (!provisioningProfileId || !provisioningProfile) {
+      return null;
     }
-    return null;
+    return { provisioningProfileId, provisioningProfile };
   }
 
   async deleteProvisioningProfile(experienceName: string, bundleIdentifier: string) {
