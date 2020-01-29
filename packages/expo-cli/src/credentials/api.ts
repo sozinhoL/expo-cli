@@ -217,9 +217,9 @@ export class IosApi {
 
   async getProvisioningProfile(
     experienceName: string,
-    bundleIdentiifer: string
+    bundleIdentifier: string
   ): Promise<appleApi.ProvisioningProfile | null> {
-    const appCredentials = await this.getAppCredentials(experienceName, bundleIdentiifer);
+    const appCredentials = await this.getAppCredentials(experienceName, bundleIdentifier);
     const provisioningProfileId = get(appCredentials, 'credentials.provisioningProfileId');
     const provisioningProfile = get(appCredentials, 'credentials.provisioningProfile');
     if (!provisioningProfileId || !provisioningProfile) {
